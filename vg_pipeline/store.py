@@ -1,18 +1,17 @@
+import logging
 import os
 import sqlite3
 
 from indexing import init_lucene, get_writer, index_article
 
 
+SQL_SELECT_ART_ID = 'select art_id from content, metadata where content.id = metadata.content_id'
+SQL_SELECT_ART_ID_CONTENT_NOT_EMPTY = 'select art_id from content, metadata where content.id = metadata.content_id and cooked != ""'
 SQL_SELECT_ARTICLE_BY_ID = 'select art_id, cooked, summary, title, tags, date from metadata, content ' \
                            'where metadata.content_id = content.id and metadata.art_id = ?'
-
 SQL_INSERT_METADATA = 'insert into metadata (content_id, art_id, summary, title, tags, date) values (?, ?, ?, ?, ?, ?)'
-
 SQL_INSERT_CONTENT = 'insert into content (cooked, raw) values (?, ?)'
-
 SQL_HAS_ARTICLE = 'select art_id from metadata, content where metadata.content_id = content.id and metadata.art_id = ?'
-
 SQL_INDEX_CONTENT_ID = 'create unique index if not exists content_id on content (id)'
 SQL_INDEX_METADATA_ART_ID = 'create unique index if not exists metadata_art_id on metadata (art_id)'
 SQL_INDEX_METADATA_ID_ = 'create unique index if not exists metadata_id on metadata (id)'
@@ -122,13 +121,24 @@ def _get_article_by_id(path, art_id):
         article = {'art_id': row['art_id'], 'cooked_doc': row['cooked'], 'summary': row['summary'],
                    'title': row['title'], 'tags': row['tags'].split('|'), 'date': row['date']}
 
-        print article
-
         result.append(article)
 
     conn.close()
 
     return result
+
+
+def _article_ids(path, filter_empty):
+    conn = _db_conn(path)
+    cur = conn.cursor()
+
+    if filter_empty:
+        cur.execute(SQL_SELECT_ART_ID_CONTENT_NOT_EMPTY)
+    else:
+        cur.execute(SQL_SELECT_ART_ID)
+
+    for row in cur:
+        yield row[0]
 
 
 class ArticleStore(object):
@@ -142,8 +152,20 @@ class ArticleStore(object):
 
         return article['art_id']
 
-    def get_article_by_id(self, art_id):
-        _get_article_by_id(self.path, art_id)
+    def get_article_by_id(self, art_id, duplicates=False):
+        articles = _get_article_by_id(self.path, art_id)
+
+        if not duplicates and len(articles) > 1:
+            logging.warn("Duplicate articles for id %d" % art_id)
+
+        if duplicates:
+            return articles
+        else:
+            return articles[0]
 
     def has_article(self, art_id):
         return _has_article(self.path, art_id)
+
+    def article_ids(self, filter_empty=True):
+        return _article_ids(self.path, filter_empty)
+
