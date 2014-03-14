@@ -7,7 +7,7 @@ from ingestion import ingest_feed, feed_address_all
 from store import ArticleStore
 
 
-INGESTION_INTERVAL = 60
+INGESTION_INTERVAL = 600
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
