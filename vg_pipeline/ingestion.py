@@ -41,7 +41,7 @@ def ingest_feed(feed_url, store):
 
     feed_doc = feedparser.parse(feed_url)
 
-    if feed_doc['status'] != HTTP_OK:
+    if feed_doc.has_key('status') and feed_doc['status'] != HTTP_OK:
         logging.error("RSS ingestion URL returned code %d" % feed_doc['status'])
 
     if 'entries' not in feed_doc.keys():

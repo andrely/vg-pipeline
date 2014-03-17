@@ -7,6 +7,13 @@ from nltk.tag.stanford import NERTagger
 PIPE = -1
 
 
+def split_tt_line(line):
+    word, tag = line.split('\t')
+    tag = tag.split('_')
+
+    return word, tag
+
+
 def annotate_treetagger(sentences):
     p = Popen(['/Users/stinky/Work/tools/treetagger/bin/tree-tagger',
                '-token', '-lemma', '/Users/stinky/Work/vg-pipeline/models/tree_tagger_2014-03-05.tree_tagger_model'],
@@ -20,7 +27,9 @@ def annotate_treetagger(sentences):
         print stderr
         raise OSError('TreeTagger command failed!')
 
-    return [line.split('\t') for line in treetagger_output.split('\n')]
+    tagged_sents = [split_tt_line(line) for line in treetagger_output.split('\n')]
+
+    return tagged_sents
 
 
 def annotate_ner(sentences):

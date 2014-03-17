@@ -6,7 +6,8 @@ from indexing import init_lucene, get_writer, index_article
 
 
 SQL_SELECT_ART_ID = 'select art_id from content, metadata where content.id = metadata.content_id'
-SQL_SELECT_ART_ID_CONTENT_NOT_EMPTY = 'select art_id from content, metadata where content.id = metadata.content_id and cooked != ""'
+SQL_SELECT_ART_ID_CONTENT_NOT_EMPTY = 'select art_id from content, metadata ' \
+                                      'where content.id = metadata.content_id and cooked != ""'
 SQL_SELECT_ARTICLE_BY_ID = 'select art_id, cooked, summary, title, tags, date from metadata, content ' \
                            'where metadata.content_id = content.id and metadata.art_id = ?'
 SQL_INSERT_METADATA = 'insert into metadata (content_id, art_id, summary, title, tags, date) values (?, ?, ?, ?, ?, ?)'
