@@ -4,7 +4,6 @@ import re
 import urllib2
 
 import feedparser
-
 import justext
 
 
@@ -63,9 +62,12 @@ def ingest_feed(feed_url, store):
             continue
 
         opener = urllib2.build_opener()
-        f = opener.open(entrydata['url'])
-        entrydata['raw_doc'] = f.read().decode('latin1')
-        f.close()
+        try:
+            f = opener.open(entrydata['url'])
+            entrydata['raw_doc'] = f.read().decode('latin1')
+            f.close()
+        except urllib2.HTTPError:
+            continue
 
         entrydata['cooked_doc'] = extract_article_text(entrydata['raw_doc'])
 
