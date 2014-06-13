@@ -1,5 +1,4 @@
 from collections import Sequence, Iterable
-from itertools import chain
 import logging
 from optparse import OptionParser
 import os
@@ -11,11 +10,15 @@ from sklearn.externals import joblib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import f1_score, precision_score, recall_score, \
-    jaccard_similarity_score
+    jaccard_similarity_score, confusion_matrix
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
+from sklearn.utils.multiclass import unique_labels
 
 from store import ArticleStore
+
+
+TOPICS = {"Nyheter", "Sport", "Rampelys"}
 
 
 class ArticleSequence(Sequence):
@@ -96,13 +99,28 @@ if __name__ == '__main__':
     content = ArticleSequence(store)
     tags = ArticleSequence(store, key='tags')
 
+    topic_indices = []
+    topics = []
+
+    for i, top in enumerate(tags):
+        topic = list(TOPICS & set(top))
+
+        if topic:
+            topics += topic
+            topic_indices.append(i)
+
+    content = list(FilteredSequence(content, topic_indices))
+    tags = topics
+
     logging.info("%d articles in dataset" % len(content))
-    logging.info("Average %.4f tags pr. article" % (len(list(chain(*tags))) / float(len(tags))))
-    logging.info("%d different tags" % len(unique(list(chain(*tags)))))
+    # logging.info("Average %.4f tags pr. article" % (len(list(chain(*tags))) / float(len(tags))))
+    # logging.info("%d different tags" % len(unique(list(chain(*tags)))))
+    logging.info("%d different tags" % len(unique(tags)))
 
     train_idx, test_idx = train_test_split(range(len(content)))
     content_train = FilteredSequence(content, train_idx)
     content_test = FilteredSequence(content, test_idx)
+
     tags_train = FilteredSequence(tags, train_idx)
     tags_test = FilteredSequence(tags, test_idx)
 
@@ -129,6 +147,8 @@ if __name__ == '__main__':
                  (f1_score(tags_test, pred), precision_score(tags_test, pred),
                   recall_score(tags_test, pred), jaccard_similarity_score(tags_test, pred)))
 
+    logging.info("Confusion matrix\n%s\n%s" % (unique_labels(tags_test, pred), confusion_matrix(tags_test, pred)))
+
     logging.info("Training full model")
 
     pipeline = Pipeline([('vect', TfidfVectorizer(strip_accents='unicode', lowercase=True, max_df=0.5, min_df=2,
@@ -136,5 +156,6 @@ if __name__ == '__main__':
                          ('svm', SVC(kernel='linear', C=c))])
     pipeline.fit(content, tags)
 
-    logging.info("Saving full model to %s" % model_fn)
-    joblib.dump(pipeline, model_fn, compress=9)
+    if model_fn:
+        logging.info("Saving full model to %s" % model_fn)
+        joblib.dump(pipeline, model_fn, compress=9)

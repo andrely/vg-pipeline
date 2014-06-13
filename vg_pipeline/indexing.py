@@ -2,6 +2,7 @@ import codecs
 import os
 
 import lucene
+
 from org.apache.lucene.store import SimpleFSDirectory
 from org.apache.lucene.analysis.miscellaneous import LimitTokenCountAnalyzer
 from org.apache.lucene.util import Version
@@ -91,4 +92,4 @@ def search(term, n_docs=10, index='index'):
 
     score_docs = searcher.search(query, n_docs).scoreDocs
 
-    return [(score_doc.score, searcher.doc(score_doc.doc)) for score_doc in score_docs]
+    return [(score_doc.score, unicode(searcher.doc(score_doc.doc).get('art_body'))) for score_doc in score_docs]

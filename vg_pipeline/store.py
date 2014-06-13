@@ -7,7 +7,7 @@ from indexing import init_lucene, get_writer, index_article
 
 SQL_SELECT_ART_ID = 'select art_id from content, metadata where content.id = metadata.content_id'
 SQL_SELECT_ART_ID_CONTENT_NOT_EMPTY = 'select art_id from content, metadata ' \
-                                      'where content.id = metadata.content_id and cooked != ""'
+                                      'where content.id = metadata.content_id and cooked != "" and art_id is not null'
 SQL_SELECT_ARTICLE_BY_ID = 'select art_id, cooked, summary, title, tags, date from metadata, content ' \
                            'where metadata.content_id = content.id and metadata.art_id = ?'
 SQL_INSERT_METADATA = 'insert into metadata (content_id, art_id, summary, title, tags, date) values (?, ?, ?, ?, ?, ?)'
@@ -21,6 +21,7 @@ SQL_TABLE_CONTENT = 'create table if not exists content (id integer primary key 
 SQL_TABLE_METADATA = 'create table if not exists metadata (id integer primary key autoincrement, content_id integer, ' \
                      'art_id integer, summary text, title text, tags text, date text, ' \
                      'foreign key (content_id) references content(id))'
+SQL_ARTICLE_COUNT = "select count() from content"
 
 TERM_INDEX_ROOT = 'term_index'
 
@@ -141,6 +142,20 @@ def _article_ids(path, filter_empty):
     for row in cur:
         yield row[0]
 
+    conn.close()
+
+
+def _article_count(path):
+    conn = _db_conn(path)
+
+    cur = conn.cursor()
+    cur.execute(SQL_ARTICLE_COUNT)
+    count = int(cur.fetchone()[0])
+
+    conn.close()
+
+    return count
+
 
 class ArticleStore(object):
     def __init__(self, path):
@@ -169,4 +184,7 @@ class ArticleStore(object):
 
     def article_ids(self, filter_empty=True):
         return _article_ids(self.path, filter_empty)
+
+    def __len__(self):
+        return _article_count(self.path)
 

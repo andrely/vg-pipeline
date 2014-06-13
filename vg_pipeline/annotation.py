@@ -8,10 +8,10 @@ PIPE = -1
 
 
 def split_tt_line(line):
-    word, tag = line.split('\t')
+    word, tag, lemma = line.split('\t')
     tag = tag.split('_')
 
-    return word, tag
+    return word, tag, lemma
 
 
 def annotate_treetagger(sentences):
@@ -27,12 +27,12 @@ def annotate_treetagger(sentences):
         print stderr
         raise OSError('TreeTagger command failed!')
 
-    tagged_sents = [split_tt_line(line) for line in treetagger_output.split('\n')]
+    tagged_sents = [split_tt_line(line) for line in treetagger_output.split('\n') if line != ""]
 
     return tagged_sents
 
 
 def annotate_ner(sentences):
     ner = NERTagger('models/nob-ner-model.ser.gz',
-                    '../tools/stanford-ner-2014-01-04/stanford-ner.jar')
+                    '../tools/stanford-ner-2014-01-04/stanford-ner.jar', encoding='utf-8')
     return ner.batch_tag(sentences)
